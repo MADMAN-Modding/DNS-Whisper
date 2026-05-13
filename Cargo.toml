@@ -5,6 +5,6 @@ edition = "2024"
 
 [dependencies]
 base32 = "0.5.1"
-hickory-dns = "0.26.0"
-hickory-proto = "0.26.0"
-tokio = "1.52.1"
+hickory-dns = "0.26.1"
+hickory-proto = "0.26.1"
+tokio = "1.52.3"
