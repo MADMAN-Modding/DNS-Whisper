@@ -1,31 +1,77 @@
-use hickory_proto::{op::Message, rr::Name};
+use std::{io::{self, BufRead}, net::{IpAddr, Ipv6Addr}};
+
+use hickory_proto::{
+    op::Message,
+    rr::{Name, RData, Record, rdata::AAAA},
+};
 
 use crate::{parse, server::util};
 
-pub fn parse_address_from_query(msg: Message) -> Name {
+pub fn parse_address_from_query(msg: &Message) -> Name {
     if msg.queries.len() == 0 {
         return Name::new();
     }
     let name = msg.queries[0].name.clone();
-    drop(msg);
 
     return name;
 }
 
-pub fn process_incoming(buf: &[u8]) {
-        let msg = util::parse_query(&buf);
+pub fn parse_reply_from_response(msg: &Message) {
+    let response = &msg.answers[0];
 
-        println!("Message: {msg}");
+    let addr: IpAddr = response.data.ip_addr().unwrap();
 
-        let name = parse::util::parse_address_from_query(msg);
+    let bytes = match addr {
+        IpAddr::V4(v4) => v4.octets().to_vec(),
+        IpAddr::V6(v6) => v6.octets().to_vec(),
+    };
+    let text = String::from_utf8_lossy(&bytes).into_owned();
 
-        println!("Name: {name}");
+    println!("Reply: {text}")
 }
 
-pub fn build_response(msg: Message) {
-    // let rdata = Record::record_type(rdata::AAAA::new(a, b, c, d, e, f, g, h));
+pub fn process_incoming(buf: &[u8]) {
+    let msg = util::parse_query(&buf);
 
-    // let record = Record::from_rdata(name, 1234, rdata);
+    println!("Message: {msg}");
 
-    // msg.add_answer(record);
+    let name = parse::util::parse_address_from_query(&msg);
+
+    println!("Name: {name}");
+
+    let mut reply: String = String::new();
+
+    // Get user input
+    let stdin = io::stdin();
+    for line in stdin.lock().lines() {
+        reply = format!("{reply}{}", line.unwrap());
+        break;
+    }
+
+    let response = parse::util::build_response(&msg, &reply);
+
+    println!("Response: {}", response);
+
+    parse_reply_from_response(&response);
+}
+
+pub fn build_response(msg: &Message, reply: &str) -> Message {
+    let name = parse_address_from_query(msg);
+
+    let bytes = reply.as_bytes();
+
+    let mut octets = [0u8; 16];
+    let len = bytes.len().min(16);
+    octets[..len].copy_from_slice(&bytes[..len]);
+
+    let ipv6_addr = Ipv6Addr::from_octets(octets);
+
+    let rdata = RData::AAAA(AAAA::from(ipv6_addr));
+
+    let record = Record::from_rdata(name, 200, rdata);
+
+    let mut response = msg.clone().into_response();
+    response.add_answer(record);
+
+    response
 }

@@ -14,7 +14,7 @@ async fn main() -> io::Result<()> {
     } else {
         let query = build_query("example.com", 1);
 
-        let sock = UdpSocket::bind("0.0.0.0:8080").await?;
+        let sock = UdpSocket::bind("127.0.0.1:8080").await?;
 
         server::start::spawn_dns_server(1234, false).await;
 
@@ -25,8 +25,5 @@ async fn main() -> io::Result<()> {
 
         time::sleep(time::Duration::from_secs(1)).await;
     }
-
-    println!("Hello, world!");
-
     Ok(())
 }

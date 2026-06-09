@@ -67,7 +67,7 @@ fn test_build_query_record_type() {
 
     let bytes = build_query("foo.bar.com", 1234);
     let msg = parse_query(&bytes);
-    assert_eq!(msg.queries[0].query_type(), RecordType::TXT);
+    assert_eq!(msg.queries[0].query_type(), RecordType::AAAA);
 }
 
 #[test]
@@ -143,7 +143,7 @@ async fn test_msg_parsing() {
         Ok(_) => {
             let msg = server::util::parse_query(&buf);
 
-            let name = parse_address_from_query(msg);
+            let name = parse_address_from_query(&msg);
 
             // Append dot for domain
             let domain_name = Name::from_str_relaxed(format!("{domain}.")).unwrap();

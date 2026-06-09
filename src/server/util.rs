@@ -56,7 +56,7 @@ pub fn build_query(domain: &str, id: u16) -> Vec<u8> {
     let name = Name::from_str(domain).unwrap();
     let mut query = Query::new();
     query.set_name(name)
-         .set_query_type(RecordType::TXT)
+         .set_query_type(RecordType::AAAA)
          .set_query_class(DNSClass::IN);
 
     message.add_query(query);
