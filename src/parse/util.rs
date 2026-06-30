@@ -1,9 +1,12 @@
-use std::{io::{self, BufRead}, net::{IpAddr, Ipv6Addr}};
+use std::{
+    io::{self, BufRead}, net::{IpAddr, Ipv6Addr},
+};
 
 use hickory_proto::{
     op::Message,
     rr::{Name, RData, Record, rdata::AAAA},
 };
+use rand::distr::{Alphanumeric, SampleString};
 
 use crate::{parse, server::util};
 
@@ -25,9 +28,17 @@ pub fn parse_reply_from_response(msg: &Message) {
         IpAddr::V4(v4) => v4.octets().to_vec(),
         IpAddr::V6(v6) => v6.octets().to_vec(),
     };
-    let text = String::from_utf8_lossy(&bytes).into_owned();
+    let response_text = String::from_utf8_lossy(&bytes).into_owned();
 
-    println!("Reply: {text}")
+    let result = response_text.find("\n");
+
+    let response_text = if result.is_some() {
+        response_text.split_at(result.unwrap()).0
+    } else {
+        &response_text
+    };
+
+    println!("Reply: {response_text}")
 }
 
 pub fn process_incoming(buf: &[u8]) {
@@ -46,6 +57,17 @@ pub fn process_incoming(buf: &[u8]) {
     for line in stdin.lock().lines() {
         reply = format!("{reply}{}", line.unwrap());
         break;
+    }
+
+    if reply.len() <= 14 {
+        reply += "\n";
+
+        let string = Alphanumeric.sample_string(&mut rand::rng(), 16 - reply.len());
+        println!("{string}");
+
+        reply += &string;
+
+        drop(string);
     }
 
     let response = parse::util::build_response(&msg, &reply);
